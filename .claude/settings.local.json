@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Skill(update-config)",
+      "Skill(update-config:*)",
+      "Bash(echo \".mcp.json:*)",
+      "Bash(\"C:/Users/20011/OneDrive/Desktop/vibecoding/study-06/.gitignore\")",
+      "Bash(printf '.mcp.json\\\\n.env\\\\n')",
+      "mcp__github__search_repositories"
+    ]
+  }
+}
