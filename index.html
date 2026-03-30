@@ -182,7 +182,7 @@
   <script>
     // Supabase 설정
     const SUPABASE_URL = 'https://vskphnygmsxjawkhqwvp.supabase.co';
-    const SUPABASE_ANON_KEY = 'sb_publishable_INDAcyA88x1PZ41pTxxP8Q_dLJrOb_Z';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZza3BobnlnbXN4amF3a2hxd3ZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ4MzM2NDgsImV4cCI6MjA5MDQwOTY0OH0.r-SY_PfSaX1ED9_vWmvDhjKfqpAQAEmU0XVntleeNVA';
     const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     let items = [];
@@ -249,8 +249,11 @@
         .insert([{ name, checked: false }]);
       
       if (error) alert('추가 실패: ' + error.message);
-      else input.value = '';
-      
+      else {
+        input.value = '';
+        await fetchItems();
+      }
+
       input.focus();
     }
 
@@ -261,6 +264,7 @@
         .eq('id', id);
       
       if (error) alert('상태 변경 실패: ' + error.message);
+      else await fetchItems();
     }
 
     async function remove(id) {
@@ -270,6 +274,7 @@
         .eq('id', id);
       
       if (error) alert('삭제 실패: ' + error.message);
+      else await fetchItems();
     }
 
     async function clearChecked() {
@@ -279,6 +284,7 @@
         .eq('checked', true);
       
       if (error) alert('선택 항목 삭제 실패: ' + error.message);
+      else await fetchItems();
     }
 
     // 실시간 구독 설정
