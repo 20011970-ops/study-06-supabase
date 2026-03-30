@@ -176,8 +176,13 @@
     <button class="clear-btn" onclick="clearChecked()">완료 항목 삭제</button>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
-    let items = JSON.parse(localStorage.getItem('shoppingList') || '[]');
+    const SUPABASE_URL = 'https://vskphnygmsxjawkhqwvp.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZza3BobnlnbXN4amF3a2hxd3ZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ4MzM2NDgsImV4cCI6MjA5MDQwOTY0OH0.r-SY_PfSaX1ED9_vWmvDhjKfqpAQAEmU0XVntleeNVA';
+    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    let items = [];
 
     const input = document.getElementById('itemInput');
     const list = document.getElementById('list');
@@ -186,8 +191,17 @@
 
     input.addEventListener('keydown', e => { if (e.key === 'Enter') addItem(); });
 
-    function save() {
-      localStorage.setItem('shoppingList', JSON.stringify(items));
+    async function fetchItems() {
+      const { data, error } = await sb
+        .from('shopping_items')
+        .select('*')
+        .order('created_at', { ascending: true });
+
+      if (error) console.error('Error fetching items:', error);
+      else {
+        items = data;
+        render();
+      }
     }
 
     function render() {
@@ -198,14 +212,14 @@
       emptyMsg.style.display = total === 0 ? 'block' : 'none';
       stats.textContent = total > 0 ? `총 ${total}개 · 완료 ${done}개` : '';
 
-      items.forEach((item, idx) => {
+      items.forEach((item) => {
         const li = document.createElement('li');
         if (item.checked) li.classList.add('checked');
 
         const cb = document.createElement('input');
         cb.type = 'checkbox';
         cb.checked = item.checked;
-        cb.addEventListener('change', () => toggle(idx));
+        cb.addEventListener('change', () => toggle(item.id, !item.checked));
 
         const span = document.createElement('span');
         span.className = 'item-name';
@@ -215,42 +229,68 @@
         btn.className = 'delete-btn';
         btn.textContent = '✕';
         btn.title = '삭제';
-        btn.addEventListener('click', () => remove(idx));
+        btn.addEventListener('click', () => remove(item.id));
 
         li.append(cb, span, btn);
         list.appendChild(li);
       });
     }
 
-    function addItem() {
+    async function addItem() {
       const name = input.value.trim();
       if (!name) return;
-      items.push({ name, checked: false });
-      input.value = '';
-      save();
-      render();
+
+      const { error } = await sb
+        .from('shopping_items')
+        .insert([{ name, checked: false }]);
+
+      if (error) alert('추가 실패: ' + error.message);
+      else {
+        input.value = '';
+        await fetchItems();
+      }
+
       input.focus();
     }
 
-    function toggle(idx) {
-      items[idx].checked = !items[idx].checked;
-      save();
-      render();
+    async function toggle(id, checked) {
+      const { error } = await sb
+        .from('shopping_items')
+        .update({ checked })
+        .eq('id', id);
+
+      if (error) alert('상태 변경 실패: ' + error.message);
+      else await fetchItems();
     }
 
-    function remove(idx) {
-      items.splice(idx, 1);
-      save();
-      render();
+    async function remove(id) {
+      const { error } = await sb
+        .from('shopping_items')
+        .delete()
+        .eq('id', id);
+
+      if (error) alert('삭제 실패: ' + error.message);
+      else await fetchItems();
     }
 
-    function clearChecked() {
-      items = items.filter(i => !i.checked);
-      save();
-      render();
+    async function clearChecked() {
+      const { error } = await sb
+        .from('shopping_items')
+        .delete()
+        .eq('checked', true);
+
+      if (error) alert('선택 항목 삭제 실패: ' + error.message);
+      else await fetchItems();
     }
 
-    render();
+    sb
+      .channel('public:shopping_items')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'shopping_items' }, () => {
+        fetchItems();
+      })
+      .subscribe();
+
+    fetchItems();
   </script>
 </body>
 </html>
